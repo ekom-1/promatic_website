@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Fetch all navigation items
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
     const { searchParams } = new URL(request.url);
     const menuType = searchParams.get('menu_type');
 
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
 // POST - Create new navigation item
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
     const body = await request.json();
     const { label, href, menu_type, order_index, parent_id } = body;
 
@@ -61,7 +59,6 @@ export async function POST(request: NextRequest) {
 // PUT - Update navigation item
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient();
     const body = await request.json();
     const { id, label, href, order_index, parent_id } = body;
 
@@ -95,7 +92,6 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete navigation item
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

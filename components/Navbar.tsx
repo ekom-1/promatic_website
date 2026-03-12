@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Zap, Menu, X } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { MobileMenu } from './MobileMenu';
 
 interface NavItem {
@@ -11,8 +11,6 @@ interface NavItem {
 }
 
 async function getNavigationItems(): Promise<NavItem[]> {
-  const supabase = createClient();
-
   const { data, error } = await supabase
     .from('navigation_items')
     .select('*')
