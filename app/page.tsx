@@ -132,10 +132,10 @@ export default function Home() {
                 </div>
               </div>
               <div className="relative h-[500px] rounded-2xl overflow-hidden border border-white/10">
-                <Image 
-                  src="https://picsum.photos/seed/automation/800/1000" 
-                  alt="Automation Dashboard" 
-                  fill 
+                <Image
+                  src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=1000&fit=crop&q=80"
+                  alt="Business automation and analytics dashboard"
+                  fill
                   className="object-cover"
                   referrerPolicy="no-referrer"
                 />
