@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, Plus, Edit, Trash2, GripVertical, Save } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
 interface MenuItem {
+  id: string;
   label: string;
-  url: string;
-  order: number;
+  href: string;
+  menu_type: string;
+  order_index: number;
 }
 
 export default function NavigationEditor() {
@@ -23,8 +24,7 @@ export default function NavigationEditor() {
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ label: '', url: '', order: 0 });
+  const [formData, setFormData] = useState({ label: '', href: '' });
 
   useEffect(() => {
     checkAuth();
@@ -40,20 +40,13 @@ export default function NavigationEditor() {
 
   const fetchMenus = async () => {
     try {
-      const { data: headerData } = await supabase
-        .from('navigation_menus')
-        .select('menu_items')
-        .eq('menu_name', 'header')
-        .single();
+      const response = await fetch('/api/navigation');
+      const { data } = await response.json();
 
-      const { data: footerData } = await supabase
-        .from('navigation_menus')
-        .select('menu_items')
-        .eq('menu_name', 'footer')
-        .single();
-
-      if (headerData) setHeaderMenu(headerData.menu_items);
-      if (footerData) setFooterMenu(footerData.menu_items);
+      if (data) {
+        setHeaderMenu(data.filter((item: MenuItem) => item.menu_type === 'header'));
+        setFooterMenu(data.filter((item: MenuItem) => item.menu_type === 'footer'));
+      }
     } catch (error) {
       console.error('Error fetching menus:', error);
     } finally {
@@ -61,123 +54,126 @@ export default function NavigationEditor() {
     }
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveMessage('');
+  const handleAddItem = async () => {
+    try {
+      const response = await fetch('/api/navigation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: formData.label,
+          href: formData.href,
+          menu_type: activeMenu,
+          order_index: (activeMenu === 'header' ? headerMenu : footerMenu).length + 1
+        })
+      });
+
+      if (response.ok) {
+        await fetchMenus();
+        setShowModal(false);
+        setFormData({ label: '', href: '' });
+        setSaveMessage('Item added successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error adding item:', error);
+      setSaveMessage('Error adding item. Please try again.');
+    }
+  };
+
+  const handleEditItem = async () => {
+    if (!editingItem) return;
 
     try {
-      await supabase
-        .from('navigation_menus')
-        .upsert({
-          menu_name: 'header',
-          menu_items: headerMenu,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        });
+      const response = await fetch('/api/navigation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingItem.id,
+          label: formData.label,
+          href: formData.href
+        })
+      });
 
-      await supabase
-        .from('navigation_menus')
-        .upsert({
-          menu_name: 'footer',
-          menu_items: footerMenu,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        });
-
-      setSaveMessage('Navigation menus saved successfully!');
-      setTimeout(() => setSaveMessage(''), 3000);
+      if (response.ok) {
+        await fetchMenus();
+        setShowModal(false);
+        setEditingItem(null);
+        setFormData({ label: '', href: '' });
+        setSaveMessage('Item updated successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
     } catch (error) {
-      console.error('Error saving menus:', error);
-      setSaveMessage('Error saving menus. Please try again.');
-    } finally {
-      setIsSaving(false);
+      console.error('Error updating item:', error);
+      setSaveMessage('Error updating item. Please try again.');
     }
   };
 
-  const handleAddItem = () => {
-    const currentMenu = activeMenu === 'header' ? headerMenu : footerMenu;
-    const newItem = {
-      label: formData.label,
-      url: formData.url,
-      order: currentMenu.length + 1
-    };
-
-    if (activeMenu === 'header') {
-      setHeaderMenu([...headerMenu, newItem]);
-    } else {
-      setFooterMenu([...footerMenu, newItem]);
-    }
-
-    setShowModal(false);
-    setFormData({ label: '', url: '', order: 0 });
-  };
-
-  const handleEditItem = () => {
-    if (editingIndex === null) return;
-
-    const updatedItem = {
-      label: formData.label,
-      url: formData.url,
-      order: formData.order
-    };
-
-    if (activeMenu === 'header') {
-      const updated = [...headerMenu];
-      updated[editingIndex] = updatedItem;
-      setHeaderMenu(updated);
-    } else {
-      const updated = [...footerMenu];
-      updated[editingIndex] = updatedItem;
-      setFooterMenu(updated);
-    }
-
-    setShowModal(false);
-    setEditingItem(null);
-    setEditingIndex(null);
-    setFormData({ label: '', url: '', order: 0 });
-  };
-
-  const handleDeleteItem = (index: number) => {
+  const handleDeleteItem = async (id: string) => {
     if (!confirm('Are you sure you want to delete this menu item?')) return;
 
-    if (activeMenu === 'header') {
-      setHeaderMenu(headerMenu.filter((_, i) => i !== index));
-    } else {
-      setFooterMenu(footerMenu.filter((_, i) => i !== index));
+    try {
+      const response = await fetch(`/api/navigation?id=${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        await fetchMenus();
+        setSaveMessage('Item deleted successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      setSaveMessage('Error deleting item. Please try again.');
     }
   };
 
-  const moveItem = (index: number, direction: 'up' | 'down') => {
+  const moveItem = async (item: MenuItem, direction: 'up' | 'down') => {
     const currentMenu = activeMenu === 'header' ? [...headerMenu] : [...footerMenu];
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    const currentIndex = currentMenu.findIndex(i => i.id === item.id);
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
 
     if (newIndex < 0 || newIndex >= currentMenu.length) return;
 
-    [currentMenu[index], currentMenu[newIndex]] = [currentMenu[newIndex], currentMenu[index]];
+    // Swap items
+    const temp = currentMenu[currentIndex].order_index;
+    currentMenu[currentIndex].order_index = currentMenu[newIndex].order_index;
+    currentMenu[newIndex].order_index = temp;
 
-    // Update order numbers
-    currentMenu.forEach((item, i) => {
-      item.order = i + 1;
-    });
+    try {
+      await Promise.all([
+        fetch('/api/navigation', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentMenu[currentIndex].id,
+            order_index: currentMenu[currentIndex].order_index
+          })
+        }),
+        fetch('/api/navigation', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentMenu[newIndex].id,
+            order_index: currentMenu[newIndex].order_index
+          })
+        })
+      ]);
 
-    if (activeMenu === 'header') {
-      setHeaderMenu(currentMenu);
-    } else {
-      setFooterMenu(currentMenu);
+      await fetchMenus();
+    } catch (error) {
+      console.error('Error moving item:', error);
     }
   };
 
-  const openEditModal = (item: MenuItem, index: number) => {
+  const openEditModal = (item: MenuItem) => {
     setEditingItem(item);
-    setEditingIndex(index);
-    setFormData({ label: item.label, url: item.url, order: item.order });
+    setFormData({ label: item.label, href: item.href });
     setShowModal(true);
   };
 
   const openAddModal = () => {
     setEditingItem(null);
-    setEditingIndex(null);
-    setFormData({ label: '', url: '', order: 0 });
+    setFormData({ label: '', href: '' });
     setShowModal(true);
   };
 
@@ -200,14 +196,6 @@ export default function NavigationEditor() {
             <h1 className="text-3xl font-bold text-white mb-2">Navigation Editor</h1>
             <p className="text-slate-400">Manage your website navigation menus</p>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 bg-primary text-background-dark px-4 py-2 rounded-lg font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(57,255,20,0.4)] disabled:opacity-50"
-          >
-            <Save size={20} />
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
         </div>
 
         {saveMessage && (
@@ -265,19 +253,19 @@ export default function NavigationEditor() {
           <div className="space-y-3">
             {currentMenu.map((item, index) => (
               <div
-                key={index}
+                key={item.id}
                 className="bg-white/5 border border-white/10 rounded-lg p-4 flex items-center gap-4 hover:border-primary/50 transition-all"
               >
                 <div className="flex flex-col gap-1">
                   <button
-                    onClick={() => moveItem(index, 'up')}
+                    onClick={() => moveItem(item, 'up')}
                     disabled={index === 0}
                     className="text-slate-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     ▲
                   </button>
                   <button
-                    onClick={() => moveItem(index, 'down')}
+                    onClick={() => moveItem(item, 'down')}
                     disabled={index === currentMenu.length - 1}
                     className="text-slate-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
                   >
@@ -289,18 +277,18 @@ export default function NavigationEditor() {
 
                 <div className="flex-1">
                   <div className="font-bold text-white">{item.label}</div>
-                  <div className="text-sm text-slate-400">{item.url}</div>
+                  <div className="text-sm text-slate-400">{item.href}</div>
                 </div>
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => openEditModal(item, index)}
+                    onClick={() => openEditModal(item)}
                     className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all"
                   >
                     <Edit size={16} />
                   </button>
                   <button
-                    onClick={() => handleDeleteItem(index)}
+                    onClick={() => handleDeleteItem(item.id)}
                     className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg transition-all"
                   >
                     <Trash2 size={16} />
@@ -322,10 +310,10 @@ export default function NavigationEditor() {
         <div className="mt-6 bg-white/5 border border-white/10 rounded-xl p-6">
           <h3 className="text-lg font-bold text-white mb-4">Preview</h3>
           <div className="bg-black/40 rounded-lg p-4 flex gap-6 flex-wrap">
-            {currentMenu.map((item, index) => (
+            {currentMenu.map((item) => (
               <a
-                key={index}
-                href={item.url}
+                key={item.id}
+                href={item.href}
                 className="text-white hover:text-primary transition-colors font-medium"
                 onClick={(e) => e.preventDefault()}
               >
@@ -362,8 +350,8 @@ export default function NavigationEditor() {
                 <input
                   type="text"
                   required
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  value={formData.href}
+                  onChange={(e) => setFormData({ ...formData, href: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-primary outline-none"
                   placeholder="/"
                 />
@@ -380,7 +368,6 @@ export default function NavigationEditor() {
                   onClick={() => {
                     setShowModal(false);
                     setEditingItem(null);
-                    setEditingIndex(null);
                   }}
                   className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg font-medium transition-all"
                 >

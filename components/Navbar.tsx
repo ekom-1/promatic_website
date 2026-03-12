@@ -1,11 +1,36 @@
-'use client';
-
 import Link from 'next/link';
 import { Zap, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { createClient } from '@/lib/supabase';
+import { MobileMenu } from './MobileMenu';
 
-export function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
+interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  order_index: number;
+}
+
+async function getNavigationItems(): Promise<NavItem[]> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('navigation_items')
+    .select('*')
+    .eq('menu_type', 'header')
+    .order('order_index', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching navigation:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function Navbar() {
+  const navItems = await getNavigationItems();
+  const bookingItem = navItems.find(item => item.href === '/booking');
+  const regularItems = navItems.filter(item => item.href !== '/booking');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
@@ -16,39 +41,41 @@ export function Navbar() {
           </div>
           <span className="text-xl font-extrabold tracking-tight text-white uppercase">PROMATIC</span>
         </Link>
-        
+
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/services" className="text-sm font-medium text-slate-300 hover:text-primary transition-colors">Services</Link>
-          <Link href="/case-studies" className="text-sm font-medium text-slate-300 hover:text-primary transition-colors">Case Studies</Link>
-          <Link href="/about" className="text-sm font-medium text-slate-300 hover:text-primary transition-colors">About</Link>
-          <Link href="/blog" className="text-sm font-medium text-slate-300 hover:text-primary transition-colors">Insights</Link>
+          {regularItems.slice(0, -1).map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              className="text-sm font-medium text-slate-300 hover:text-primary transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
-        
+
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/contact" className="text-sm font-medium text-slate-300 hover:text-primary transition-colors">Contact</Link>
-          <Link href="/booking" className="bg-primary text-background-dark px-6 py-2.5 rounded-full text-sm font-bold hover:brightness-110 transition-all neon-glow-hover">
-            Book a Demo
-          </Link>
+          {regularItems.slice(-1).map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              className="text-sm font-medium text-slate-300 hover:text-primary transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
+          {bookingItem && (
+            <Link
+              href={bookingItem.href}
+              className="bg-primary text-background-dark px-6 py-2.5 rounded-full text-sm font-bold hover:brightness-110 transition-all neon-glow-hover"
+            >
+              {bookingItem.label}
+            </Link>
+          )}
         </div>
 
-        <button className="md:hidden text-white" onClick={() => setIsOpen(!isOpen)}>
-          {isOpen ? <X /> : <Menu />}
-        </button>
+        <MobileMenu items={navItems} />
       </div>
-
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden absolute top-20 left-0 w-full bg-background-dark border-b border-white/10 p-6 flex flex-col gap-4">
-          <Link href="/services" className="text-lg font-medium text-slate-300 hover:text-primary" onClick={() => setIsOpen(false)}>Services</Link>
-          <Link href="/case-studies" className="text-lg font-medium text-slate-300 hover:text-primary" onClick={() => setIsOpen(false)}>Case Studies</Link>
-          <Link href="/about" className="text-lg font-medium text-slate-300 hover:text-primary" onClick={() => setIsOpen(false)}>About</Link>
-          <Link href="/blog" className="text-lg font-medium text-slate-300 hover:text-primary" onClick={() => setIsOpen(false)}>Insights</Link>
-          <Link href="/contact" className="text-lg font-medium text-slate-300 hover:text-primary" onClick={() => setIsOpen(false)}>Contact</Link>
-          <Link href="/booking" className="bg-primary text-background-dark px-6 py-3 rounded-lg text-center font-bold mt-4" onClick={() => setIsOpen(false)}>
-            Book a Demo
-          </Link>
-        </div>
-      )}
     </header>
   );
 }
