@@ -104,11 +104,14 @@ export default function BookingPage() {
                     <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                       <CalendarIcon className="text-primary" /> Select Date
                     </h3>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       min={minDate}
                       value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      onChange={(e) => {
+                        console.log('Date selected:', e.target.value);
+                        setFormData({...formData, date: e.target.value});
+                      }}
                       className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl p-4 text-white outline-none font-mono"
                     />
                   </div>
@@ -121,8 +124,12 @@ export default function BookingPage() {
                       {availableTimes.map(time => (
                         <button
                           key={time}
+                          type="button"
                           disabled={!formData.date}
-                          onClick={() => setFormData({...formData, time})}
+                          onClick={() => {
+                            console.log('Time selected:', time);
+                            setFormData({...formData, time});
+                          }}
                           className={`py-3 rounded-xl font-mono text-sm border transition-all ${
                             !formData.date ? 'opacity-50 cursor-not-allowed border-white/5 bg-white/5 text-slate-500' :
                             formData.time === time ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 bg-background-dark text-white hover:border-primary/50'
@@ -137,10 +144,12 @@ export default function BookingPage() {
                 
                 <div className="flex justify-end pt-8 border-t border-white/10">
                   <button
+                    type="button"
                     disabled={!formData.date || !formData.time}
                     onClick={() => {
                       console.log('Continue clicked. Form data:', { date: formData.date, time: formData.time });
                       if (formData.date && formData.time) {
+                        console.log('Moving to step 2');
                         setStep(2);
                       } else {
                         alert('Please select both date and time');
