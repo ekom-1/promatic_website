@@ -15,11 +15,11 @@ export default function Home() {
       <Navbar />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative pt-20 pb-32 overflow-hidden">
+        <section className="relative pt-32 pb-32 overflow-hidden">
           <DottedSurface />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(57,255,20,0.05),transparent_50%)] pointer-events-none"></div>
           <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 mt-8">
               <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
               <span className="text-primary text-xs font-bold uppercase tracking-widest">AI Automation for Small Businesses</span>
             </div>
