@@ -11,18 +11,35 @@ interface NavItem {
 }
 
 async function getNavigationItems(): Promise<NavItem[]> {
-  const { data, error } = await supabase
-    .from('navigation_items')
-    .select('*')
-    .eq('menu_type', 'header')
-    .order('order_index', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('navigation_items')
+      .select('*')
+      .eq('menu_type', 'header')
+      .order('order_index', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching navigation:', error);
-    return [];
+    if (error) {
+      console.warn('Navigation fetch error:', error);
+      // Return default navigation items if there's an error
+      return [
+        { id: '1', label: 'Services', href: '/services', order_index: 1 },
+        { id: '2', label: 'About', href: '/about', order_index: 2 },
+        { id: '3', label: 'Contact', href: '/contact', order_index: 3 },
+        { id: '4', label: 'Book Demo', href: '/booking', order_index: 4 }
+      ];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.warn('Unexpected navigation fetch error:', error);
+    // Return default navigation items if there's an unexpected error
+    return [
+      { id: '1', label: 'Services', href: '/services', order_index: 1 },
+      { id: '2', label: 'About', href: '/about', order_index: 2 },
+      { id: '3', label: 'Contact', href: '/contact', order_index: 3 },
+      { id: '4', label: 'Book Demo', href: '/booking', order_index: 4 }
+    ];
   }
-
-  return data || [];
 }
 
 export async function Navbar() {
@@ -31,33 +48,33 @@ export async function Navbar() {
   const regularItems = navItems.filter(item => item.href !== '/booking');
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
+    <header className="glass-header">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="size-8 bg-primary rounded flex items-center justify-center">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="size-9 bg-primary rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 glass-icon">
             <Zap className="text-background-dark size-5" fill="currentColor" />
           </div>
-          <span className="text-xl font-extrabold tracking-tight text-white uppercase">PROMATIC</span>
+          <span className="text-xl font-bold tracking-tight text-white uppercase logo-text">PROMATIC</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-1">
           {regularItems.slice(0, -1).map((item) => (
             <Link
               key={item.id}
               href={item.href}
-              className="text-sm font-medium text-slate-300 hover:text-primary transition-colors"
+              className="nav-link"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
           {regularItems.slice(-1).map((item) => (
             <Link
               key={item.id}
               href={item.href}
-              className="text-sm font-medium text-slate-300 hover:text-primary transition-colors"
+              className="nav-link"
             >
               {item.label}
             </Link>
@@ -65,7 +82,7 @@ export async function Navbar() {
           {bookingItem && (
             <Link
               href={bookingItem.href}
-              className="bg-primary text-background-dark px-6 py-2.5 rounded-full text-sm font-bold hover:brightness-110 transition-all neon-glow-hover"
+              className="cta-button"
             >
               {bookingItem.label}
             </Link>
