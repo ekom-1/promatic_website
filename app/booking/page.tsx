@@ -33,6 +33,8 @@ export default function BookingPage() {
     setStatus('submitting');
 
     try {
+      console.log('Submitting booking with data:', formData);
+
       const { data, error } = await supabase
         .from('bookings')
         .insert([
@@ -51,16 +53,18 @@ export default function BookingPage() {
 
       if (error) {
         console.error('Booking error:', error);
-        throw error;
+        alert(`Failed to save booking: ${error.message}\n\nPlease check:\n1. Supabase connection\n2. RLS policies are set correctly\n3. Run supabase-schema.sql in your Supabase SQL Editor`);
+        setStatus('error');
+        return;
       }
 
-      console.log('Booking saved:', data);
+      console.log('Booking saved successfully:', data);
       setStatus('success');
       setStep(3);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting booking:', error);
+      alert(`Unexpected error: ${error?.message || 'Unknown error'}\n\nPlease check console for details.`);
       setStatus('error');
-      alert('Failed to save booking. Please check console for details.');
     }
   };
 
@@ -132,10 +136,17 @@ export default function BookingPage() {
                 </div>
                 
                 <div className="flex justify-end pt-8 border-t border-white/10">
-                  <button 
+                  <button
                     disabled={!formData.date || !formData.time}
-                    onClick={() => setStep(2)}
-                    className="px-8 py-4 bg-primary text-background-dark font-black font-mono uppercase tracking-widest rounded-xl hover:brightness-110 transition-all disabled:opacity-50"
+                    onClick={() => {
+                      console.log('Continue clicked. Form data:', { date: formData.date, time: formData.time });
+                      if (formData.date && formData.time) {
+                        setStep(2);
+                      } else {
+                        alert('Please select both date and time');
+                      }
+                    }}
+                    className="px-8 py-4 bg-primary text-background-dark font-black font-mono uppercase tracking-widest rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continue
                   </button>
