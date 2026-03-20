@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Eye, EyeOff, Save, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Eye, EyeOff, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { insforge } from '@/lib/insforge';
 
 interface BlogPost {
@@ -12,6 +12,7 @@ interface BlogPost {
   content: string;
   author: string;
   published: boolean;
+  featured_image?: string;
   seo_title?: string;
   seo_description?: string;
   seo_keywords?: string[];
@@ -31,12 +32,15 @@ export default function BlogManager() {
     content: '',
     author: 'PROMATIC Team',
     published: false,
+    featured_image: '',
     seo_title: '',
     seo_description: '',
     seo_keywords: []
   });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -69,6 +73,9 @@ export default function BlogManager() {
     setMessage(null);
 
     try {
+      // Convert markdown content to HTML
+      const htmlContent = convertMarkdownToHTML(editingPost.content);
+
       if (editingPost.id) {
         // Update existing post
         const { error } = await insforge.database
@@ -77,9 +84,10 @@ export default function BlogManager() {
             title: editingPost.title,
             slug: editingPost.slug,
             excerpt: editingPost.excerpt,
-            content: editingPost.content,
+            content: htmlContent,
             author: editingPost.author,
             published: editingPost.published,
+            featured_image: editingPost.featured_image,
             seo_title: editingPost.seo_title,
             seo_description: editingPost.seo_description,
             seo_keywords: editingPost.seo_keywords,
@@ -97,9 +105,10 @@ export default function BlogManager() {
             title: editingPost.title,
             slug: editingPost.slug,
             excerpt: editingPost.excerpt,
-            content: editingPost.content,
+            content: htmlContent,
             author: editingPost.author,
             published: editingPost.published,
+            featured_image: editingPost.featured_image,
             seo_title: editingPost.seo_title,
             seo_description: editingPost.seo_description,
             seo_keywords: editingPost.seo_keywords
@@ -168,6 +177,7 @@ export default function BlogManager() {
       content: '',
       author: 'PROMATIC Team',
       published: false,
+      featured_image: '',
       seo_title: '',
       seo_description: '',
       seo_keywords: []
@@ -175,11 +185,131 @@ export default function BlogManager() {
     setIsEditing(true);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Please upload an image file' });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Image size should be less than 5MB' });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setMessage(null);
+
+    try {
+      const fileName = `blog-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+
+      const { data, error } = await insforge.storage
+        .from('blog-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = insforge.storage
+        .from('blog-images')
+        .getPublicUrl(fileName);
+
+      setEditingPost({
+        ...editingPost,
+        featured_image: urlData.publicUrl
+      });
+
+      setMessage({ type: 'success', text: 'Image uploaded successfully!' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      setMessage({ type: 'error', text: error.message || 'Failed to upload image' });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+  };
+
+  const convertMarkdownToHTML = (markdown: string): string => {
+    let html = markdown;
+
+    // Convert headings
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+    // Convert bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+    // Convert italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+    // Convert links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // Convert unordered lists
+    html = html.replace(/^\s*[-*+]\s+(.+)$/gim, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+    // Convert ordered lists
+    html = html.replace(/^\s*\d+\.\s+(.+)$/gim, '<li>$1</li>');
+
+    // Convert blockquotes
+    html = html.replace(/^>\s+(.+)$/gim, '<blockquote>$1</blockquote>');
+
+    // Convert line breaks to paragraphs
+    const lines = html.split('\n');
+    const paragraphs: string[] = [];
+    let currentParagraph = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Skip if it's already a tag
+      if (line.startsWith('<h') || line.startsWith('<ul') || line.startsWith('<ol') ||
+          line.startsWith('<li') || line.startsWith('<blockquote') ||
+          line.startsWith('</')) {
+        if (currentParagraph) {
+          paragraphs.push(`<p>${currentParagraph}</p>`);
+          currentParagraph = '';
+        }
+        paragraphs.push(line);
+      } else if (line === '') {
+        if (currentParagraph) {
+          paragraphs.push(`<p>${currentParagraph}</p>`);
+          currentParagraph = '';
+        }
+      } else {
+        if (currentParagraph) {
+          currentParagraph += ' ' + line;
+        } else {
+          currentParagraph = line;
+        }
+      }
+    }
+
+    if (currentParagraph) {
+      paragraphs.push(`<p>${currentParagraph}</p>`);
+    }
+
+    html = paragraphs.join('\n');
+
+    return html;
   };
 
   const filteredPosts = posts.filter(post =>
@@ -244,6 +374,49 @@ export default function BlogManager() {
               </div>
 
               <div>
+                <label className="block text-sm font-bold text-slate-300 mb-2">Featured Image</label>
+                <div className="space-y-3">
+                  {editingPost.featured_image ? (
+                    <div className="relative group">
+                      <img
+                        src={editingPost.featured_image}
+                        alt="Featured"
+                        className="w-full h-64 object-cover rounded-lg border border-white/10"
+                      />
+                      <button
+                        onClick={() => setEditingPost({ ...editingPost, featured_image: '' })}
+                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-primary/50 transition-colors bg-white/5">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-12 h-12 mb-3 text-slate-400" />
+                        <p className="mb-2 text-sm text-slate-400">
+                          <span className="font-semibold">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-slate-500">PNG, JPG, GIF up to 5MB</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isUploadingImage}
+                      />
+                    </label>
+                  )}
+                  {isUploadingImage && (
+                    <div className="text-center text-primary text-sm font-semibold">
+                      Uploading image...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-bold text-slate-300 mb-2">Excerpt</label>
                 <textarea
                   value={editingPost.excerpt}
@@ -255,14 +428,41 @@ export default function BlogManager() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">Content * (HTML)</label>
-                <textarea
-                  value={editingPost.content}
-                  onChange={(e) => setEditingPost({ ...editingPost, content: e.target.value })}
-                  rows={15}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:ring-2 focus:ring-primary outline-none"
-                  placeholder="<h2>Heading</h2><p>Content...</p>"
-                />
+                <label className="block text-sm font-bold text-slate-300 mb-2">
+                  Content *
+                  <span className="text-xs font-normal text-slate-500 ml-2">
+                    (Just paste your text - formatting will be applied automatically)
+                  </span>
+                </label>
+                <div className="space-y-2">
+                  <div className="text-xs text-slate-500 bg-white/5 rounded-lg p-3 border border-white/10">
+                    <p className="font-semibold mb-2">Formatting Tips:</p>
+                    <ul className="space-y-1 ml-4">
+                      <li>• Start headings with ## for main sections</li>
+                      <li>• Use **bold text** for emphasis</li>
+                      <li>• Create lists with - or numbers</li>
+                      <li>• Add links: [text](url)</li>
+                    </ul>
+                  </div>
+                  <textarea
+                    value={editingPost.content}
+                    onChange={(e) => setEditingPost({ ...editingPost, content: e.target.value })}
+                    rows={20}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-base leading-relaxed focus:ring-2 focus:ring-primary outline-none resize-y"
+                    placeholder="Paste your blog content here...
+
+## Introduction
+Start with an engaging introduction that hooks your readers.
+
+## Main Points
+- Point one with details
+- Point two with explanation
+- Point three with examples
+
+## Conclusion
+Wrap up with key takeaways and call to action."
+                  />
+                </div>
               </div>
 
               <div>
@@ -338,12 +538,55 @@ export default function BlogManager() {
                 {isSaving ? 'Saving...' : 'Save Post'}
               </button>
               <button
+                onClick={() => setShowPreview(!showPreview)}
+                className="px-8 py-4 border border-primary/50 text-primary font-bold rounded-xl hover:bg-primary/10 transition-all"
+              >
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </button>
+              <button
                 onClick={() => setIsEditing(false)}
                 className="px-8 py-4 border border-white/10 text-white font-bold rounded-xl hover:bg-white/5 transition-all"
               >
                 Cancel
               </button>
             </div>
+
+            {/* Live Preview */}
+            {showPreview && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-8">
+                <h3 className="text-xl font-bold text-white mb-6 pb-4 border-b border-white/10">
+                  Preview
+                </h3>
+                <article className="prose prose-invert prose-lg max-w-none">
+                  {editingPost.featured_image && (
+                    <div className="mb-6">
+                      <img
+                        src={editingPost.featured_image}
+                        alt="Featured"
+                        className="w-full h-64 object-cover rounded-lg"
+                      />
+                    </div>
+                  )}
+                  <h1 className="text-4xl font-black text-white mb-4">
+                    {editingPost.title || 'Your Title Here'}
+                  </h1>
+                  {editingPost.excerpt && (
+                    <p className="text-xl text-slate-400 mb-6">
+                      {editingPost.excerpt}
+                    </p>
+                  )}
+                  <div className="text-sm text-slate-500 mb-6">
+                    By {editingPost.author || 'Author'}
+                  </div>
+                  <div className="border-t border-white/10 pt-6">
+                    <div
+                      className="blog-content text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: convertMarkdownToHTML(editingPost.content || '') }}
+                    />
+                  </div>
+                </article>
+              </div>
+            )}
           </div>
         </div>
       </div>

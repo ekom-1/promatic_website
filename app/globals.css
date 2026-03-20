@@ -21,6 +21,27 @@
     --background: #121212;
     --foreground: #ffffff;
   }
+
+  html.lenis, html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  .lenis.lenis-scrolling iframe {
+    pointer-events: none;
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
@@ -28,6 +49,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    overflow-x: hidden;
   }
 }
 
@@ -49,8 +79,14 @@
     left: 0;
     right: 0;
     z-index: 50;
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1rem;
     pointer-events: none;
+  }
+
+  @media (min-width: 768px) {
+    .glass-header-wrapper {
+      padding: 1rem 1.5rem;
+    }
   }
 
   .glass-header-container {
@@ -61,7 +97,19 @@
   }
 
   .glass-header-container.scrolled {
-    max-width: 90%;
+    max-width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .glass-header-container.scrolled {
+      max-width: 92%;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .glass-header-container.scrolled {
+      max-width: 90%;
+    }
   }
 
   .glass-header-inner {
@@ -71,8 +119,8 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
     border-radius: 1rem;
-    padding: 0 1.5rem;
-    height: 4.5rem;
+    padding: 0 1rem;
+    height: 4rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -80,10 +128,30 @@
     animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  @media (min-width: 768px) {
+    .glass-header-inner {
+      padding: 0 1.5rem;
+      height: 4.5rem;
+    }
+  }
+
   .glass-header-container.scrolled .glass-header-inner {
     border-radius: 9999px;
-    padding: 0 2.5rem;
-    height: 4rem;
+    padding: 0 1.25rem;
+    height: 3.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .glass-header-container.scrolled .glass-header-inner {
+      padding: 0 2rem;
+      height: 4rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .glass-header-container.scrolled .glass-header-inner {
+      padding: 0 2.5rem;
+    }
   }
 
   @keyframes slideDown {
@@ -157,5 +225,17 @@
 
   .cta-button * {
     color: #121212 !important;
+  }
+
+  /* Responsive text utilities */
+  @media (max-width: 640px) {
+    .logo-text {
+      font-size: 1.125rem;
+    }
+  }
+
+  /* Prevent horizontal overflow */
+  .max-w-7xl {
+    max-width: min(80rem, 100%);
   }
 }

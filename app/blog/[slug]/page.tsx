@@ -16,6 +16,7 @@ interface BlogPost {
   content: string;
   excerpt: string;
   author: string;
+  featured_image?: string;
   created_at: string;
   seo_title?: string;
   seo_description?: string;
@@ -93,6 +94,20 @@ export default function BlogPostPage() {
         </Link>
 
         <article className="prose prose-invert prose-lg max-w-none">
+          {/* Featured Image */}
+          {post.featured_image && (
+            <div className="mb-8 -mx-6 md:mx-0">
+              <div className="relative w-full h-[300px] md:h-[500px] rounded-none md:rounded-2xl overflow-hidden border-y md:border border-white/10">
+                <img
+                  src={post.featured_image}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
+              </div>
+            </div>
+          )}
+
           <div className="mb-8">
             <div className="flex items-center gap-4 text-sm text-slate-500 font-mono mb-4">
               <span className="flex items-center gap-1">
@@ -113,9 +128,11 @@ export default function BlogPostPage() {
               {post.title}
             </h1>
 
-            <p className="text-xl text-slate-400 mb-6">
-              {post.excerpt}
-            </p>
+            {post.excerpt && (
+              <p className="text-xl text-slate-400 mb-6">
+                {post.excerpt}
+              </p>
+            )}
 
             <div className="flex items-center gap-3 text-sm text-slate-500">
               <span>By {post.author}</span>
@@ -186,6 +203,41 @@ export default function BlogPostPage() {
         }
         .blog-content a:hover {
           text-decoration: none;
+        }
+        .blog-content img {
+          width: 100%;
+          height: auto;
+          border-radius: 1rem;
+          margin: 2rem 0;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .blog-content blockquote {
+          border-left: 4px solid #39FF14;
+          padding-left: 1.5rem;
+          margin: 2rem 0;
+          font-style: italic;
+          color: #94a3b8;
+        }
+        .blog-content code {
+          background: rgba(255, 255, 255, 0.05);
+          padding: 0.25rem 0.5rem;
+          border-radius: 0.375rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.875em;
+          color: #39FF14;
+        }
+        .blog-content pre {
+          background: rgba(255, 255, 255, 0.05);
+          padding: 1.5rem;
+          border-radius: 0.75rem;
+          overflow-x: auto;
+          margin: 2rem 0;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .blog-content pre code {
+          background: none;
+          padding: 0;
+          color: #e2e8f0;
         }
       `}</style>
     </>

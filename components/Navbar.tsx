@@ -28,11 +28,24 @@ export function Navbar() {
       .then(res => res.json())
       .then(result => {
         if (result.data && result.data.length > 0) {
-          setNavItems(result.data);
+          // Merge API data with default items, keeping defaults if not in API
+          const apiHrefs = result.data.map((item: NavItem) => item.href);
+          const missingDefaults = defaultNavItems.filter(
+            defaultItem => !apiHrefs.includes(defaultItem.href)
+          );
+
+          // Combine and sort by order_index
+          const combined = [...result.data, ...missingDefaults].sort(
+            (a, b) => a.order_index - b.order_index
+          );
+
+          setNavItems(combined);
         }
+        // If API returns empty or fails, keep defaultNavItems
       })
       .catch(error => {
         console.warn('Navigation fetch error:', error);
+        // Keep default items on error
       });
   }, []);
 
