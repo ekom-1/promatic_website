@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { NavbarClient } from './NavbarClient';
 
 interface NavItem {
@@ -8,37 +10,30 @@ interface NavItem {
   order_index: number;
 }
 
-async function getNavigationItems(): Promise<NavItem[]> {
-  try {
-    const { data, error } = await supabase
-      .from('navigation_items')
-      .select('*')
-      .eq('menu_type', 'header')
-      .order('order_index', { ascending: true });
+const defaultNavItems: NavItem[] = [
+  { id: '0', label: 'Home', href: '/', order_index: 0 },
+  { id: '1', label: 'Services', href: '/services', order_index: 1 },
+  { id: '2', label: 'About', href: '/about', order_index: 2 },
+  { id: '3', label: 'Contact', href: '/contact', order_index: 3 },
+  { id: '4', label: 'Book Demo', href: '/booking', order_index: 4 }
+];
 
-    if (error) {
-      console.warn('Navigation fetch error:', error);
-      return [
-        { id: '1', label: 'Services', href: '/services', order_index: 1 },
-        { id: '2', label: 'About', href: '/about', order_index: 2 },
-        { id: '3', label: 'Contact', href: '/contact', order_index: 3 },
-        { id: '4', label: 'Book Demo', href: '/booking', order_index: 4 }
-      ];
-    }
+export function Navbar() {
+  const [navItems, setNavItems] = useState<NavItem[]>(defaultNavItems);
 
-    return data || [];
-  } catch (error) {
-    console.warn('Unexpected navigation fetch error:', error);
-    return [
-      { id: '1', label: 'Services', href: '/services', order_index: 1 },
-      { id: '2', label: 'About', href: '/about', order_index: 2 },
-      { id: '3', label: 'Contact', href: '/contact', order_index: 3 },
-      { id: '4', label: 'Book Demo', href: '/booking', order_index: 4 }
-    ];
-  }
-}
+  useEffect(() => {
+    // Fetch navigation items from API
+    fetch('/api/navigation?menu_type=header')
+      .then(res => res.json())
+      .then(result => {
+        if (result.data && result.data.length > 0) {
+          setNavItems(result.data);
+        }
+      })
+      .catch(error => {
+        console.warn('Navigation fetch error:', error);
+      });
+  }, []);
 
-export async function Navbar() {
-  const navItems = await getNavigationItems();
   return <NavbarClient navItems={navItems} />;
 }

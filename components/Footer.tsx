@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Zap, Twitter, Linkedin, Instagram, Facebook } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 
 export function Footer() {
   const [year, setYear] = useState(2025);
@@ -21,7 +21,7 @@ export function Footer() {
     setSubscribeStatus('submitting');
 
     try {
-      const { error } = await supabase
+      const { error } = await insforge.database
         .from('email_subscriptions')
         .insert([{ email }]);
 

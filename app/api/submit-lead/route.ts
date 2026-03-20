@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Insert into database
-    const { data, error } = await supabase
+    const { data, error } = await insforge.database
       .from('form_submissions')
       .insert([{
         name,
@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
         phone: phone || '',
         message: message || '',
         service: 'Chatbot Lead',
-        status: 'New',
         created_at: new Date().toISOString()
       }])
       .select();

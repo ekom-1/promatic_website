@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Bell, Settings, TrendingUp, Users, MessageSquare, Activity, Bot, Clock, LogOut } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -35,18 +35,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Check authentication
     const checkAuth = async () => {
-      const token = localStorage.getItem('admin_token');
-
-      if (!token) {
-        router.push('/admin/login');
-        return;
-      }
-
       try {
+        const token = localStorage.getItem('admin_token');
+
+        if (!token) {
+          router.push('/admin/login');
+          return;
+        }
+
         const response = await fetch('/api/admin/auth', {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
 
         if (response.ok) {
@@ -57,6 +58,7 @@ export default function AdminDashboard() {
           router.push('/admin/login');
         }
       } catch (error) {
+        console.error('Authentication error:', error);
         localStorage.removeItem('admin_token');
         router.push('/admin/login');
       }
@@ -71,7 +73,7 @@ export default function AdminDashboard() {
     // Fetch chatbot leads
     const fetchChatbotLeads = async () => {
       try {
-        const { data } = await supabase
+        const { data } = await insforge.database
           .from('form_submissions')
           .select('*')
           .eq('source_page', 'chatbot')
@@ -89,15 +91,15 @@ export default function AdminDashboard() {
     // Fetch total submissions count (all forms + bookings + email subscriptions)
     const fetchTotalSubmissions = async () => {
       try {
-        const { count: formCount } = await supabase
+        const { count: formCount } = await insforge.database
           .from('form_submissions')
           .select('*', { count: 'exact', head: true });
 
-        const { count: bookingCount } = await supabase
+        const { count: bookingCount } = await insforge.database
           .from('bookings')
           .select('*', { count: 'exact', head: true });
 
-        const { count: emailCount } = await supabase
+        const { count: emailCount } = await insforge.database
           .from('email_subscriptions')
           .select('*', { count: 'exact', head: true });
 
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
     // Fetch contact form submissions
     const fetchContactSubmissions = async () => {
       try {
-        const { data } = await supabase
+        const { data } = await insforge.database
           .from('form_submissions')
           .select('*')
           .eq('source_page', 'contact')
@@ -129,7 +131,7 @@ export default function AdminDashboard() {
     // Fetch bookings
     const fetchBookings = async () => {
       try {
-        const { data } = await supabase
+        const { data } = await insforge.database
           .from('bookings')
           .select('*')
           .order('created_at', { ascending: false })
@@ -146,7 +148,7 @@ export default function AdminDashboard() {
     // Fetch email subscriptions
     const fetchSubscriptions = async () => {
       try {
-        const { data } = await supabase
+        const { data } = await insforge.database
           .from('email_subscriptions')
           .select('*')
           .order('subscribed_at', { ascending: false })
@@ -217,21 +219,21 @@ export default function AdminDashboard() {
     try {
       console.log('Updating booking:', bookingId, 'to status:', newStatus);
 
-      const { data, error } = await supabase
+      const { data, error } = await insforge.database
         .from('bookings')
         .update({ status: newStatus })
         .eq('id', bookingId)
         .select();
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('InsForge error:', error);
         throw error;
       }
 
       console.log('Update successful:', data);
 
       // Refresh bookings list
-      const { data: updatedBookings } = await supabase
+      const { data: updatedBookings } = await insforge.database
         .from('bookings')
         .select('*')
         .order('created_at', { ascending: false })

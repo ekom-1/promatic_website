@@ -5,7 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Chatbot } from '@/components/Chatbot';
 import { Mail, Phone, Clock, MapPin } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -22,10 +22,10 @@ export default function ContactPage() {
     setStatus('submitting');
 
     try {
-      const { error } = await supabase
+      const { error } = await insforge.database
         .from('form_submissions')
         .insert([
-          { 
+          {
             name: formData.name,
             company: formData.company,
             email: formData.email,

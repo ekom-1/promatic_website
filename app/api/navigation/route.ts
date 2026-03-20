@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const menuType = searchParams.get('menu_type');
 
-    let query = supabase
+    let query = insforge.database
       .from('navigation_items')
       .select('*')
       .order('order_index', { ascending: true });
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await insforge.database
       .from('navigation_items')
       .insert([{ label, href, menu_type, order_index: order_index || 0, parent_id }])
       .select()
@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest) {
     if (order_index !== undefined) updateData.order_index = order_index;
     if (parent_id !== undefined) updateData.parent_id = parent_id;
 
-    const { data, error } = await supabase
+    const { data, error } = await insforge.database
       .from('navigation_items')
       .update(updateData)
       .eq('id', id)
@@ -99,7 +99,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing item ID' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await insforge.database
       .from('navigation_items')
       .delete()
       .eq('id', id);

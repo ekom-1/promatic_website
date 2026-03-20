@@ -5,7 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Chatbot } from '@/components/Chatbot';
 import { Calendar as CalendarIcon, Clock, Video, CheckCircle2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 
 export default function BookingPage() {
   const [step, setStep] = useState(1);
@@ -19,11 +19,11 @@ export default function BookingPage() {
     notes: ''
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-
   const [minDate, setMinDate] = useState('');
 
   useEffect(() => {
-    setMinDate(new Date().toISOString().split('T')[0]);
+    const today = new Date().toISOString().split('T')[0];
+    setMinDate(today);
   }, []);
 
   const availableTimes = ['09:00', '10:00', '11:30', '13:00', '14:30', '16:00'];
@@ -33,9 +33,7 @@ export default function BookingPage() {
     setStatus('submitting');
 
     try {
-      console.log('Submitting booking with data:', formData);
-
-      const { data, error } = await supabase
+      const { data, error } = await insforge.database
         .from('bookings')
         .insert([
           {
@@ -53,7 +51,7 @@ export default function BookingPage() {
 
       if (error) {
         console.error('Booking error:', error);
-        alert(`Failed to save booking: ${error.message}\n\nPlease check:\n1. Supabase connection\n2. RLS policies are set correctly\n3. Run supabase-schema.sql in your Supabase SQL Editor`);
+        alert(`Failed to save booking: ${error.message}`);
         setStatus('error');
         return;
       }
@@ -63,7 +61,7 @@ export default function BookingPage() {
       setStep(3);
     } catch (error: any) {
       console.error('Error submitting booking:', error);
-      alert(`Unexpected error: ${error?.message || 'Unknown error'}\n\nPlease check console for details.`);
+      alert(`Unexpected error: ${error?.message || 'Unknown error'}`);
       setStatus('error');
     }
   };
@@ -109,13 +107,13 @@ export default function BookingPage() {
                       min={minDate}
                       value={formData.date}
                       onChange={(e) => {
-                        console.log('Date selected:', e.target.value);
-                        setFormData({...formData, date: e.target.value});
+                        const newDate = e.target.value;
+                        setFormData(prev => ({ ...prev, date: newDate }));
                       }}
                       className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl p-4 text-white outline-none font-mono"
                     />
                   </div>
-                  
+
                   <div>
                     <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                       <Clock className="text-primary" /> Select Time
@@ -126,10 +124,7 @@ export default function BookingPage() {
                           key={time}
                           type="button"
                           disabled={!formData.date}
-                          onClick={() => {
-                            console.log('Time selected:', time);
-                            setFormData({...formData, time});
-                          }}
+                          onClick={() => setFormData(prev => ({ ...prev, time }))}
                           className={`py-3 rounded-xl font-mono text-sm border transition-all ${
                             !formData.date ? 'opacity-50 cursor-not-allowed border-white/5 bg-white/5 text-slate-500' :
                             formData.time === time ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 bg-background-dark text-white hover:border-primary/50'
@@ -141,20 +136,12 @@ export default function BookingPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end pt-8 border-t border-white/10">
                   <button
                     type="button"
                     disabled={!formData.date || !formData.time}
-                    onClick={() => {
-                      console.log('Continue clicked. Form data:', { date: formData.date, time: formData.time });
-                      if (formData.date && formData.time) {
-                        console.log('Moving to step 2');
-                        setStep(2);
-                      } else {
-                        alert('Please select both date and time');
-                      }
-                    }}
+                    onClick={() => setStep(2)}
                     className="px-8 py-4 bg-primary text-background-dark font-black font-mono uppercase tracking-widest rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continue
@@ -181,55 +168,55 @@ export default function BookingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="font-mono text-xs uppercase tracking-widest block text-slate-400">Full Name</label>
-                    <input 
+                    <input
                       required
                       value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
-                      className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3 px-4 text-white outline-none" 
+                      onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3 px-4 text-white outline-none"
                       type="text"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="font-mono text-xs uppercase tracking-widest block text-slate-400">Email Address</label>
-                    <input 
+                    <input
                       required
                       value={formData.email}
-                      onChange={e => setFormData({...formData, email: e.target.value})}
-                      className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3 px-4 text-white outline-none" 
+                      onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3 px-4 text-white outline-none"
                       type="email"
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="font-mono text-xs uppercase tracking-widest block text-slate-400">Company Name (Optional)</label>
                   <input
                     value={formData.company}
-                    onChange={e => setFormData({...formData, company: e.target.value})}
+                    onChange={e => setFormData(prev => ({ ...prev, company: e.target.value }))}
                     className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3 px-4 text-white outline-none"
                     type="text"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="font-mono text-xs uppercase tracking-widest block text-slate-400">What would you like to discuss?</label>
-                  <textarea 
+                  <textarea
                     value={formData.notes}
-                    onChange={e => setFormData({...formData, notes: e.target.value})}
-                    className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3 px-4 text-white outline-none" 
+                    onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full bg-background-dark border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3 px-4 text-white outline-none"
                     rows={4}
                   ></textarea>
                 </div>
-                
+
                 <div className="flex justify-between pt-8 border-t border-white/10">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setStep(1)}
                     className="px-8 py-4 border border-white/10 text-white font-bold rounded-xl hover:bg-white/5 transition-all"
                   >
                     Back
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     disabled={status === 'submitting'}
                     className="px-8 py-4 bg-primary text-background-dark font-black font-mono uppercase tracking-widest rounded-xl hover:brightness-110 transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] disabled:opacity-50"
@@ -250,7 +237,7 @@ export default function BookingPage() {
                   Your strategy session is scheduled for <span className="text-white font-bold">{formData.date} at {formData.time}</span>. We&apos;ve sent a calendar invitation to {formData.email}.
                 </p>
                 <div className="pt-8">
-                  <button 
+                  <button
                     onClick={() => window.location.href = '/'}
                     className="px-8 py-4 border border-white/10 text-white font-bold rounded-xl hover:bg-white/5 transition-all"
                   >

@@ -30,6 +30,16 @@ export function NavbarClient({ navItems }: NavbarClientProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
   return (
     <header className="glass-header-wrapper">
       <div className={`glass-header-container ${isScrolled ? 'scrolled' : ''}`}>
@@ -42,10 +52,11 @@ export function NavbarClient({ navItems }: NavbarClientProps) {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            {regularItems.slice(0, -1).map((item) => (
+            {regularItems.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
+                onClick={(e) => handleClick(e, item.href)}
                 className="nav-link"
               >
                 {item.label}
@@ -54,15 +65,6 @@ export function NavbarClient({ navItems }: NavbarClientProps) {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            {regularItems.slice(-1).map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className="nav-link"
-              >
-                {item.label}
-              </Link>
-            ))}
             {bookingItem && (
               <Link
                 href={bookingItem.href}

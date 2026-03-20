@@ -68,7 +68,7 @@ export function AnimatedCounter({ end, duration = 2000, suffix = '', prefix = ''
   }, [isVisible, end, duration]);
 
   return (
-    <p ref={counterRef} className="text-primary text-4xl font-black mb-1">
+    <p ref={counterRef} className="text-primary text-4xl font-black mb-1 transition-all duration-300">
       {prefix}{count}{suffix}
     </p>
   );
