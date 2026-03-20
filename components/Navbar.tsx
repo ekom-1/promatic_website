@@ -13,9 +13,10 @@ interface NavItem {
 const defaultNavItems: NavItem[] = [
   { id: '0', label: 'Home', href: '/', order_index: 0 },
   { id: '1', label: 'Services', href: '/services', order_index: 1 },
-  { id: '2', label: 'About', href: '/about', order_index: 2 },
-  { id: '3', label: 'Contact', href: '/contact', order_index: 3 },
-  { id: '4', label: 'Book Demo', href: '/booking', order_index: 4 }
+  { id: '2', label: 'Blog', href: '/blog', order_index: 2 },
+  { id: '3', label: 'About', href: '/about', order_index: 3 },
+  { id: '4', label: 'Contact', href: '/contact', order_index: 4 },
+  { id: '5', label: 'Book Demo', href: '/booking', order_index: 5 }
 ];
 
 export function Navbar() {
